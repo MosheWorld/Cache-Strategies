@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Bitcoin and Ethereum Prices</title>
+</head>
+
+<body>
+    <h1>Bitcoin and Ethereum Prices</h1>
+    <button id="bitcoin-btn">Get Bitcoin Price</button>
+    <button id="ethereum-btn">Get Ethereum Price</button>
+    <div id="result"></div>
+
+    <script>
+        const resultElem = document.getElementById('result');
+
+        // Helper function to fetch the price data and store it in local storage
+        function getPriceAndCache(currency) {
+            // Check if the data is cached in local storage
+            const cachedData = localStorage.getItem(currency);
+            if (cachedData) {
+                const { timestamp, price } = JSON.parse(cachedData);
+                const ageInSeconds = (Date.now() - timestamp) / 1000;
+                const timeLeftInSeconds = Math.floor(10 - ageInSeconds);
+                // If the cached data is less than 10 seconds old, return it
+                if (ageInSeconds < 10) {
+                    resultElem.textContent = `${currency} price: $${price} (from cache, expires in ${timeLeftInSeconds} seconds)`;
+                    return Promise.resolve({ price, fromCache: true });
+                }
+            }
+
+            // If the data is not cached, fetch it from the API and store it in local storage
+            return fetch(`https://api.coinbase.com/v2/prices/${currency}-USD/spot`)
+                .then((response) => response.json())
+                .then((data) => {
+                    const price = data.data.amount;
+                    const timestamp = Date.now();
+                    const cachedData = JSON.stringify({ price, timestamp });
+                    localStorage.setItem(currency, cachedData);
+                    resultElem.textContent = `${currency} price: $${price} (from API)`;
+                    return { price, fromCache: false };
+                });
+        }
+
+        // Add click event listeners to the buttons
+        document.getElementById('bitcoin-btn').addEventListener('click', () => {
+            getPriceAndCache('BTC');
+        });
+
+        document.getElementById('ethereum-btn').addEventListener('click', () => {
+            getPriceAndCache('ETH');
+        });
+    </script>
+</body>
+
+</html>
